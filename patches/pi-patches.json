@@ -1,0 +1,87 @@
+[
+  {
+    "id": "034-short-session-ids",
+    "file": "dist/core/session-manager.js",
+    "intent": "Generate shorter Pi session IDs for new sessions while keeping enough randomness for practical local uniqueness.",
+    "find": "import { uuidv7 } from \"@earendil-works/pi-agent-core\";\nimport { randomUUID } from \"crypto\";\n",
+    "replace": "import { randomBytes, randomUUID } from \"crypto\";\n",
+    "verify": "import { randomBytes, randomUUID } from \"crypto\";",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "versionConsidered": "0.75.1"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Status/footer surfaces and session alias paths become unreadable with UUID-sized session IDs; 12 base64url characters from 9 random bytes keeps filenames compact without adding a runtime dependency."
+      }
+    ]
+  },
+  {
+    "id": "035-short-session-id-generator",
+    "file": "dist/core/session-manager.js",
+    "intent": "Use a 12-character base64url session ID instead of the UUIDv7 string for newly-created Pi session files.",
+    "find": "function createSessionId() {\n    return uuidv7();\n}",
+    "replace": "function createSessionId() {\n    return randomBytes(9).toString(\"base64url\");\n}",
+    "verify": "return randomBytes(9).toString(\"base64url\");",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "versionConsidered": "0.75.1"
+      },
+      {
+        "type": "memory-note",
+        "reason": "New status-line session aliases should fit in a terminal footer, e.g. ~/.pi-sessions/<12-char-id>.jsonl."
+      }
+    ]
+  },
+  {
+    "id": "036-session-alias-resolver-imports",
+    "file": "dist/main.js",
+    "intent": "Allow bare --session arguments to resolve through ~/.pi-sessions/<id>.jsonl aliases before falling back to canonical session ID prefix search.",
+    "find": "import { resolve } from \"node:path\";\nimport { createInterface } from \"node:readline\";",
+    "replace": "import { existsSync } from \"node:fs\";\nimport { homedir } from \"node:os\";\nimport { join, resolve } from \"node:path\";\nimport { createInterface } from \"node:readline\";",
+    "verify": "import { existsSync } from \"node:fs\";",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "versionConsidered": "0.75.1"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Short status-line aliases are only useful if `pi --session <short-id>` can reopen the same target as `pi --session ~/.pi-sessions/<short-id>.jsonl`."
+      }
+    ]
+  },
+  {
+    "id": "037-session-alias-resolver",
+    "file": "dist/main.js",
+    "intent": "Map bare --session tokens to ~/.pi-sessions/<token>.jsonl when that alias exists.",
+    "find": "    // Try to match as session ID in current project first\n    const localSessions = await SessionManager.list(cwd, sessionDir);",
+    "replace": "    const aliasPath = join(homedir(), \".pi-sessions\", `${sessionArg}.jsonl`);\n    if (existsSync(aliasPath)) {\n        return { type: \"path\", path: aliasPath };\n    }\n    // Try to match as session ID in current project first\n    const localSessions = await SessionManager.list(cwd, sessionDir);",
+    "verify": "join(homedir(), \".pi-sessions\", `${sessionArg}.jsonl`)",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "versionConsidered": "0.75.1"
+      },
+      {
+        "type": "memory-note",
+        "reason": "`pi --session 4twbznl3ZYbC` should be equivalent to `pi --session ~/.pi-sessions/4twbznl3ZYbC.jsonl`."
+      }
+    ]
+  }
+]
+
